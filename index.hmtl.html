@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-[#FFFBF4]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paws & Match - Encuentra a tu compañero ideal</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            orange: '#FF6B4A',
+                            orangeHover: '#F05533',
+                            mint: '#2ECC71',
+                            mintHover: '#27AE60',
+                            yellow: '#FFD166',
+                            bg: '#FFFBF4',
+                            cardBg: '#FFFFFF',
+                            dark: '#2D3748',
+                            purple: '#9B51E0'
+                        }
+                    },
+                    fontFamily: {
+                        heading: ['Fredoka', 'sans-serif'],
+                        body: ['Nunito', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'card': '0 15px 35px -5px rgba(255, 107, 74, 0.12), 0 8px 16px -6px rgba(0, 0, 0, 0.05)',
+                        'floating': '0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        h1, h2, h3, h4, h5, .font-heading {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        /* Card Swipe Physics Styles */
+        .swipe-card {
+            will-change: transform;
+            transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+            cursor: grab;
+        }
+
+        .swipe-card:active {
+            cursor: grabbing;
+        }
+
+        .swipe-card.swiping-fast {
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+        }
+
+        /* Stamp Indicators */
+        .stamp-badge {
+            position: absolute;
+            top: 40px;
+            padding: 8px 20px;
+            border-radius: 12px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 30;
+            border: 4px solid;
+            transition: opacity 0.1s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .stamp-like {
+            right: 30px;
+            color: #2ECC71;
+            border-color: #2ECC71;
+            transform: rotate(15deg);
+        }
+
+        .stamp-nope {
+            left: 30px;
+            color: #FF6B4A;
+            border-color: #FF6B4A;
+            transform: rotate(-15deg);
+        }
+
+        .stamp-super {
+            top: auto;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-5deg);
+            color: #9B51E0;
+            border-color: #9B51E0;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FFFBF4;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #E2E8F0;
+            border-radius: 20px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #CBD5E0;
+        }
+
+        /* Smooth pulse animation */
+        @keyframes heartPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse-heart {
+            animation: heartPulse 1.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 antialiased flex flex-col justify-between overflow-x-hidden bg-[#FFFBF4]">
+
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-orange-100 px-4 py-3 sm:px-8 shadow-sm">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center gap-2.5 cursor-pointer" onclick="switchTab('swipe')">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-orange to-brand-yellow flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid fa-paw text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800 tracking-tight leading-none">Paws & Match</h1>
+                    <span class="text-xs text-brand-orange font-semibold tracking-wider uppercase">Adopta un amigo</span>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="openFilterModal()" class="relative p-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-brand-orange transition-all font-semibold flex items-center gap-2 text-sm border border-orange-200/60 active:scale-95">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span class="hidden sm:inline">Filtros</span>
+                    <span id="filter-badge" class="hidden absolute -top-1 -right-1 w-3 h-3 bg-brand-orange rounded-full ring-2 ring-white"></span>
+                </button>
+
+                <div class="h-6 w-[1px] bg-slate-200 my-auto mx-1"></div>
+
+                <!-- Navigation Tabs -->
+                <button id="nav-swipe-btn" onclick="switchTab('swipe')" class="p-2.5 sm:px-4 rounded-xl bg-brand-orange text-white font-bold transition-all flex items-center gap-2 text-sm shadow-md shadow-orange-500/20 active:scale-95">
+                    <i class="fa-solid fa-[#fa4d26] fa-fire text-base"></i>
+                    <span class="hidden sm:inline">Descubrir</span>
+                </button>
+
+                <button id="nav-matches-btn" onclick="switchTab('matches')" class="relative p-2.5 sm:px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-all flex items-center gap-2 text-sm active:scale-95">
+                    <i class="fa-solid fa-heart text-base text-brand-orange"></i>
+                    <span class="hidden sm:inline">Mis Matches</span>
+                    <span id="matches-count-badge" class="ml-1 px-2 py-0.5 text-xs bg-brand-orange text-white rounded-full">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 flex flex-col items-center justify-center relative min-h-[calc(100vh-80px)]">
+
+        <!-- SWIPE VIEW -->
+        <section id="swipe-view" class="w-full max-w-md flex flex-col items-center justify-between h-full py-2">
+            
+            <!-- Cards Container -->
+            <div id="cards-stack" class="relative w-full h-[520px] sm:h-[560px] flex items-center justify-center">
+                
+                <!-- Empty State (Shown when all cards finished) -->
+                <div id="empty-state" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center p-8 bg-white rounded-3xl shadow-card border border-orange-100/60 my-auto">
+                    <div class="w-24 h-24 bg-orange-50 rounded-full flex items-center justify-center text-brand-orange text-4xl mb-4 animate-bounce">
+                        <i class="fa-solid fa-dog"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-slate-800 mb-2">¡Has visto todos los perritos!</h3>
+                    <p class="text-slate-500 text-sm mb-6 max-w-xs">No hay más perritos compatibles con tus filtros actuales cerca de ti.</p>
+                    <div class="flex flex-col gap-3 w-full max-w-xs">
+                        <button onclick="resetDeck()" class="w-full py-3.5 px-6 rounded-2xl bg-brand-orange hover:bg-brand-orangeHover text-white font-bold transition-all shadow-lg shadow-orange-500/20 active:scale-95 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-rotate-left"></i> Volver a ver perritos
+                        </button>
+                        <button onclick="openFilterModal()" class="w-full py-3 px-6 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition-all active:scale-95 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-sliders"></i> Ajustar filtros
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dog Cards will be rendered dynamically here -->
+            </div>
+
+            <!-- Bottom Floating Controls -->
+            <div id="swipe-controls" class="flex items-center justify-center gap-4 sm:gap-6 mt-6 w-full max-w-sm">
+                <!-- Undo Button -->
+                <button onclick="handleUndo()" title="Deshacer última acción" class="w-12 h-12 rounded-full bg-white text-yellow-500 border border-slate-100 shadow-md flex items-center justify-center text-lg hover:scale-110 active:scale-90 transition-all group">
+                    <i class="fa-solid fa-rotate-left group-hover:-rotate-45 transition-transform"></i>
+                </button>
+
+                <!-- Pass Button (Nope) -->
+                <button onclick="triggerSwipe('left')" title="Pasar" class="w-16 h-16 rounded-full bg-white text-brand-orange border-2 border-slate-100 shadow-lg flex items-center justify-center text-2xl hover:bg-orange-50 hover:scale-110 active:scale-90 transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <!-- Super Like / Favorite Button -->
+                <button onclick="triggerSwipe('super')" title="Super Like" class="w-12 h-12 rounded-full bg-white text-brand-purple border border-slate-100 shadow-md flex items-center justify-center text-lg hover:bg-purple-50 hover:scale-110 active:scale-90 transition-all">
+                    <i class="fa-solid fa-star"></i>
+                </button>
+
+                <!-- Match Button (Like) -->
+                <button onclick="triggerSwipe('right')" title="¡Me Gusta!" class="w-16 h-16 rounded-full bg-brand-mint text-white shadow-lg shadow-green-500/30 flex items-center justify-center text-2xl hover:bg-brand-mintHover hover:scale-110 active:scale-90 transition-all">
+                    <i class="fa-solid fa-heart"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- MATCHES & FAVORITES VIEW -->
+        <section id="matches-view" class="hidden w-full max-w-3xl py-4">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Mis Matches y Favoritos</h2>
+                    <p class="text-slate-500 text-sm">Perritos que te interesan para adopción</p>
+                </div>
+                <span id="matches-count-text" class="text-sm font-semibold bg-orange-100 text-brand-orange px-3 py-1 rounded-full">0 guardados</span>
+            </div>
+
+            <!-- Empty Matches State -->
+            <div id="no-matches-state" class="hidden text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8">
+                <div class="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto text-3xl mb-4">
+                    <i class="fa-solid fa-heart-crack"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-700 mb-1">Aún no tienes matches</h3>
+                <p class="text-slate-500 text-sm mb-6 max-w-xs mx-auto">Explora perritos en la sección principal y desliza a la derecha para guardarlos aquí.</p>
+                <button onclick="switchTab('swipe')" class="py-3 px-6 rounded-2xl bg-brand-orange text-white font-bold hover:bg-brand-orangeHover transition-all shadow-md">
+                    Descubrir perritos
+                </button>
+            </div>
+
+            <!-- Matches Grid -->
+            <div id="matches-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Dynamically filled with saved dogs -->
+            </div>
+        </section>
+
+    </main>
+
+    <div id="dog-detail-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden relative max-h-[90vh] flex flex-col my-auto animate-in fade-in zoom-in duration-200">
+            <!-- Close Modal Button -->
+            <button onclick="closeDetailModal()" class="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-slate-900/50 hover:bg-slate-900/80 text-white flex items-center justify-center backdrop-blur-md transition-all">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <!-- Modal Header Image -->
+            <div class="relative h-72 sm:h-80 w-full shrink-0">
+                <img id="modal-dog-image" src="" alt="" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+                <div class="absolute bottom-4 left-6 right-6 text-white">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span id="modal-dog-gender-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 backdrop-blur-md border border-white/30">Macho</span>
+                        <span id="modal-dog-size-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 backdrop-blur-md border border-white/30">Mediano</span>
+                    </div>
+                    <h2 id="modal-dog-name" class="text-3xl font-bold tracking-wide">Nombre</h2>
+                    <p id="modal-dog-subtext" class="text-slate-200 text-sm"><i class="fa-solid fa-location-dot text-brand-orange mr-1"></i> Ubicación</p>
+                </div>
+            </div>
+
+            <!-- Modal Content Body -->
+            <div class="p-6 overflow-y-auto space-y-6">
+                <!-- Badges -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Personalidad y Rasgos</h4>
+                    <div id="modal-dog-tags" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <!-- Story / Bio -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Su Historia</h4>
+                    <p id="modal-dog-bio" class="text-slate-600 leading-relaxed text-sm"></p>
+                </div>
+
+                <!-- Health & Status -->
+                <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div class="text-center">
+                        <i class="fa-solid fa-syringe text-brand-mint text-xl mb-1 block"></i>
+                        <span class="text-xs text-slate-500 block">Vacunas</span>
+                        <span id="modal-dog-vac" class="text-xs font-bold text-slate-800">Al día</span>
+                    </div>
+                    <div class="text-center border-x border-slate-200">
+                        <i class="fa-solid fa-shield-dog text-brand-orange text-xl mb-1 block"></i>
+                        <span class="text-xs text-slate-500 block">Esterilizado</span>
+                        <span id="modal-dog-sterilized" class="text-xs font-bold text-slate-800">Sí</span>
+                    </div>
+                    <div class="text-center">
+                        <i class="fa-solid fa-bolt text-brand-yellow text-xl mb-1 block"></i>
+                        <span class="text-xs text-slate-500 block">Energía</span>
+                        <span id="modal-dog-energy" class="text-xs font-bold text-slate-800">Alta</span>
+                    </div>
+                </div>
+
+                <!-- Compatibility -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Compatibilidad</h4>
+                    <div id="modal-dog-compat" class="flex gap-4"></div>
+                </div>
+
+                <!-- Shelter Info -->
+                <div class="bg-orange-50/60 p-4 rounded-2xl border border-orange-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs text-brand-orange font-bold uppercase tracking-wider">Refugio a Cargo</span>
+                        <h5 id="modal-shelter-name" class="font-bold text-slate-800 text-sm">Refugio Esperanza</h5>
+                        <p id="modal-shelter-contact" class="text-xs text-slate-500">contacto@refugio.org</p>
+                    </div>
+                    <a id="modal-shelter-phone" href="#" class="p-3 bg-white text-brand-orange rounded-xl border border-orange-200 font-bold text-sm shadow-sm hover:bg-orange-50">
+                        <i class="fa-solid fa-phone"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Modal Action Footer -->
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+                <button onclick="adoptFromModal()" class="flex-1 py-3.5 px-4 rounded-2xl bg-brand-orange hover:bg-brand-orangeHover text-white font-bold transition-all shadow-md shadow-orange-500/20 active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-heart-circle-check text-lg"></i> Solicitar Adopción
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="adopt-form-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 relative animate-in fade-in zoom-in duration-200">
+            <button onclick="closeAdoptForm()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-all">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 bg-orange-100 text-brand-orange rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl">
+                    <i class="fa-solid fa-file-signature"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-slate-800">Solicitud de Adopción</h3>
+                <p class="text-slate-500 text-xs mt-1">Estás aplicando para adoptar a <span id="adopt-dog-name" class="font-bold text-brand-orange"></span></p>
+            </div>
+
+            <form id="adopt-form" onsubmit="submitAdoptionForm(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nombre Completo</label>
+                    <input type="text" required placeholder="Ej. Ana García" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-orange/50 text-sm">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Teléfono</label>
+                        <input type="tel" required placeholder="+34 600 000 000" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-orange/50 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Tipo de Vivienda</label>
+                        <select class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-orange/50 text-sm bg-white">
+                            <option>Casa con jardín</option>
+                            <option>Piso / Departamento</option>
+                            <option>Finca / Casa de campo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Correo Electrónico</label>
+                    <input type="email" required placeholder="tu@email.com" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-orange/50 text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">¿Por qué deseas adoptar?</label>
+                    <textarea rows="3" required placeholder="Cuéntanos un poco sobre tu hogar y estilo de vida..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-orange/50 text-sm resize-none"></textarea>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 px-4 rounded-2xl bg-brand-mint hover:bg-brand-mintHover text-white font-bold transition-all shadow-md shadow-green-500/20 active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i> Enviar Solicitud al Refugio
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="filter-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 relative animate-in fade-in zoom-in duration-200">
+            <button onclick="closeFilterModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-all">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-brand-orange"></i> Filtros de Búsqueda
+            </h3>
+
+            <div class="space-y-5">
+                <!-- Size Filter -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tamaño</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button type="button" onclick="toggleFilterOption('size', 'all')" class="filter-btn-size py-2 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" data-val="all">Todos</button>
+                        <button type="button" onclick="toggleFilterOption('size', 'Pequeño')" class="filter-btn-size py-2 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" data-val="Pequeño">Pequeño</button>
+                        <button type="button" onclick="toggleFilterOption('size', 'Mediano')" class="filter-btn-size py-2 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" data-val="Mediano">Mediano</button>
+                        <button type="button" onclick="toggleFilterOption('size', 'Grande')" class="filter-btn-size py-2 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" data-val="Grande">Grande</button>
+                    </div>
+                </div>
+
+                <!-- Age Filter -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Etapa de Vida</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button type="button" onclick="toggleFilterOption('age', 'all')" class="filter-btn-age py-2 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" data-val="all">Todos</button>
+                        <button type="button" onclick="toggleFilterOption('age', 'Cachorro')" class="filter-btn-age py-2 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" data-val="Cachorro">Cachorro</button>
+                        <button type="button" onclick="toggleFilterOption('age', 'Joven/Adulto')" class="filter-btn-age py-2 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" data-val="Joven/Adulto">Adulto</button>
+                        <button type="button" onclick="toggleFilterOption('age', 'Senior')" class="filter-btn-age py-2 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" data-val="Senior">Senior</button>
+                    </div>
+                </div>
+
+                <!-- Gender Filter -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Género</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="toggleFilterOption('gender', 'all')" class="filter-btn-gender py-2 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" data-val="all">Todos</button>
+                        <button type="button" onclick="toggleFilterOption('gender', 'Macho')" class="filter-btn-gender py-2 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" data-val="Macho">Macho</button>
+                        <button type="button" onclick="toggleFilterOption('gender', 'Hembra')" class="filter-btn-gender py-2 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" data-val="Hembra">Hembra</button>
+                    </div>
+                </div>
+
+                <!-- Compatibility Checks -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Compatibilidad Necesaria</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                            <input type="checkbox" id="filter-kids" onchange="updateCompatibilityFilter()" class="w-4 h-4 rounded text-brand-orange focus:ring-brand-orange border-slate-300">
+                            Apto para convivencia con Niños
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                            <input type="checkbox" id="filter-cats" onchange="updateCompatibilityFilter()" class="w-4 h-4 rounded text-brand-orange focus:ring-brand-orange border-slate-300">
+                            Compatible con Gatos
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                            <input type="checkbox" id="filter-dogs" onchange="updateCompatibilityFilter()" class="w-4 h-4 rounded text-brand-orange focus:ring-brand-orange border-slate-300">
+                            Sociable con otros Perros
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex gap-3">
+                <button onclick="resetFilters()" class="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm transition-all flex-1">
+                    Restablecer
+                </button>
+                <button onclick="applyFilters()" class="py-3 px-4 rounded-xl bg-brand-orange hover:bg-brand-orangeHover text-white font-bold text-sm transition-all flex-1 shadow-md shadow-orange-500/20">
+                    Aplicar Filtros
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // Database of Dogs for Adoption
+// Database of Dogs for Adoption
+        const initialDogList = [
+            // --- LOS 6 ORIGINALES ---
+            {
+                id: 'dog_1',
+                name: 'Rocky',
+                age: '2 años',
+                stage: 'Joven/Adulto',
+                breed: 'Golden Retriever Mix',
+                size: 'Grande',
+                gender: 'Macho',
+                location: 'Madrid, Centro',
+                tags: ['Juguetón', 'Cariñoso', 'Apto Niños', 'Energía Alta'],
+                image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=800',
+                bio: 'Rocky es un perro super alegre y lleno de energía al que le encanta correr en los parques y jugar con la pelota. Fue rescatado de una finca y busca una familia activa que le dé mucho amor.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Alta',
+                compat: { kids: true, cats: false, dogs: true },
+                shelter: { name: 'Huellas de Amor', contact: 'adopciones@huellas.org', phone: '+34 611 223 344' }
+            },
+            {
+                id: 'dog_2',
+                name: 'Mona',
+                age: '5 meses',
+                stage: 'Cachorro',
+                breed: 'Mestiza Pequeña',
+                size: 'Pequeño',
+                gender: 'Hembra',
+                location: 'Barcelona, Gràcia',
+                tags: ['Tranquila', 'Cachorra', 'Mimosa', 'Sociable'],
+                image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=800',
+                bio: 'Mona es una cachorrita adorable rescatada junto a sus hermanos. Le encanta acurrucarse en la manta y aprende muy rápido. Es ideal para vivir en un departamento.',
+                vaccinated: true,
+                sterilized: false,
+                energy: 'Media',
+                compat: { kids: true, cats: true, dogs: true },
+                shelter: { name: 'Refugio Mascotas Felices', contact: 'hola@mascotasfelices.org', phone: '+34 622 334 455' }
+            },
+            {
+                id: 'dog_3',
+                name: 'Bruno',
+                age: '4 años',
+                stage: 'Joven/Adulto',
+                breed: 'Pastor Alemán Mix',
+                size: 'Grande',
+                gender: 'Macho',
+                location: 'Valencia, Ruzafa',
+                tags: ['Líder', 'Protector', 'Obediente', 'Inteligente'],
+                image: 'https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?auto=format&fit=crop&q=80&w=800',
+                bio: 'Bruno es un perro leal y noble con entrenamiento básico. Le gusta pasear tranquilamente y estar cerca de sus humanos. Ideal para personas con experiencia previa.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Media',
+                compat: { kids: true, cats: false, dogs: true },
+                shelter: { name: 'Asociación AdoptaHoy', contact: 'contacto@adoptahoy.es', phone: '+34 633 445 566' }
+            },
+            {
+                id: 'dog_4',
+                name: 'Luna',
+                age: '1 año',
+                stage: 'Joven/Adulto',
+                breed: 'Bodeguero / Beagle',
+                size: 'Mediano',
+                gender: 'Hembra',
+                location: 'Sevilla, Triana',
+                tags: ['Curiosa', 'Muy Activa', 'Cazadora', 'Alegre'],
+                image: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&q=80&w=800',
+                bio: 'Luna tiene una personalidad chispeante. Siempre tiene la cola en movimiento y busca constantemente jugar. Le encanta explorar nuevos senderos y olfatear todo.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Muy Alta',
+                compat: { kids: true, cats: true, dogs: true },
+                shelter: { name: 'Protectora La Sonrisa Canina', contact: 'info@lasonrisacanina.org', phone: '+34 644 556 677' }
+            },
+            {
+                id: 'dog_5',
+                name: 'Toby',
+                age: '8 años',
+                stage: 'Senior',
+                breed: 'Cocker Spaniel',
+                size: 'Mediano',
+                gender: 'Macho',
+                location: 'Bilbao, Abando',
+                tags: ['Tranquilo', 'Senior', 'Amable', 'Poco Ladrador'],
+                image: 'https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&q=80&w=800',
+                bio: 'Toby es un abuelito entrañable que busca un hogar tranquilo donde pasar sus años dorados relajado en una camita mullida. Excelente compañero de siestas.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Baja',
+                compat: { kids: true, cats: true, dogs: true },
+                shelter: { name: 'Santuario Canino Norte', contact: 'santuario@caninonorte.es', phone: '+34 655 667 788' }
+            },
+            {
+                id: 'dog_6',
+                name: 'Bella',
+                age: '3 años',
+                stage: 'Joven/Adulto',
+                breed: 'Border Collie Mix',
+                size: 'Mediano',
+                gender: 'Hembra',
+                location: 'Málaga, Centro',
+                tags: ['Muy Inteligente', 'Ágil', 'Cariñosa', 'Leal'],
+                image: 'https://images.unsplash.com/photo-1503256207526-0d5d80fa2f47?auto=format&fit=crop&q=80&w=800',
+                bio: 'Bella destaca por su inteligencia asombrosa. Le encantan los juegos de olfato y agilidad. Necesita estimulación mental diaria y paseos dinámicos.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Alta',
+                compat: { kids: false, cats: false, dogs: true },
+                shelter: { name: 'Huellas de Amor', contact: 'adopciones@huellas.org', phone: '+34 611 223 344' }
+            },
+            
+            // --- TUS 16 PERRITOS EXTRAS ---
+            {
+                id: 'dog_7',
+                name: 'Mamado',
+                age: '3 años',
+                stage: 'Joven/Adulto',
+                breed: 'Pitbull Mix',
+                size: 'Grande',
+                gender: 'Macho',
+                location: 'Santiago de María',
+                tags: ['Mamado', 'Gymbro', 'Serio'],
+                image: 'dog1.jpeg',
+                bio: 'Este perrito musculoso tiene una forma muy peculiar de sentarse recargado contra la pared, mirándote de reojo. Parece que no se salta el día de pierna en el gimnasio.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Media',
+                compat: { kids: false, cats: false, dogs: true },
+                shelter: { name: 'Gym Canino', contact: 'adopciones@usulutan.org', phone: '+503 7000 0001' }
+            },
+            {
+                id: 'dog_8',
+                name: 'Rex',
+                age: '1 año',
+                stage: 'Joven/Adulto',
+                breed: 'T-Rex Dog',
+                size: 'Mediano',
+                gender: 'Macho',
+                location: 'Usulután',
+                tags: ['Dinosaurio', 'Feliz', 'Luchador'],
+                image: 'dog2.jpeg',
+                bio: 'Nuestro pequeño T-Rex. Le faltan sus patitas delanteras y camina en dos patas, pero eso no le quita la sonrisa ni las ganas de andar explorando toda la casa.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Alta',
+                compat: { kids: true, cats: true, dogs: true },
+                shelter: { name: 'Refugio Alegría', contact: 'info@refugio.org', phone: '+503 7000 0002' }
+            },
+            {
+                id: 'dog_9',
+                name: 'Ciclista',
+                age: '2 años',
+                stage: 'Joven/Adulto',
+                breed: 'Mestizo Biker',
+                size: 'Grande',
+                gender: 'Macho',
+                location: 'Berlín',
+                tags: ['Independiente', 'Ecológico', 'Deportista'],
+                image: 'dog3.jpeg',
+                bio: 'Es un perrito tan independiente que ya aprendió a andar en bicicleta por la calle y hasta lleva su propia mochila en la espalda. ¡El rey de la ciclovía!',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Muy Alta',
+                compat: { kids: true, cats: false, dogs: true },
+                shelter: { name: 'Patitas en Bici', contact: 'bici@perritos.com', phone: '+503 7000 0003' }
+            },
+            {
+                id: 'dog_10',
+                name: 'Godín',
+                age: '5 años',
+                stage: 'Joven/Adulto',
+                breed: 'Chihuahua / Contador',
+                size: 'Pequeño',
+                gender: 'Macho',
+                location: 'Santiago de María',
+                tags: ['Oficinista', 'Intelectual', 'Educado'],
+                image: 'dog4.jpeg',
+                bio: 'Con su pelo peinado de picos y sus lentes de aumento, parece todo un oficinista estresado por el cierre de mes. Muy educado y listo para revisar tus tareas.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Baja',
+                compat: { kids: true, cats: true, dogs: false },
+                shelter: { name: 'Oficina Canina', contact: 'godin@rescate.org', phone: '+503 7000 0004' }
+            },
+            {
+                id: 'dog_11',
+                name: 'Pancita',
+                age: '1 mes',
+                stage: 'Cachorro',
+                breed: 'Bulldog',
+                size: 'Pequeño',
+                gender: 'Macho',
+                location: 'Alegría',
+                tags: ['Dormilón', 'Gordito', 'Pancita'],
+                image: 'dog5.jpeg',
+                bio: 'Este cachorrito es puro amor y mucha pancita rosada. Le encanta echarse de espaldas a dormir la siesta después de comer. Cero preocupaciones en su vida.',
+                vaccinated: false,
+                sterilized: false,
+                energy: 'Baja',
+                compat: { kids: true, cats: true, dogs: true },
+                shelter: { name: 'Mascotas Felices', contact: 'hola@mascotasfelices.org', phone: '+503 7000 0005' }
+            },
+            {
+                id: 'dog_12',
+                name: 'Bodoque',
+                age: '2 meses',
+                stage: 'Cachorro',
+                breed: 'Bulldog Blanco',
+                size: 'Pequeño',
+                gender: 'Macho',
+                location: 'Usulután',
+                tags: ['Esponjoso', 'Nube', 'Perezoso'],
+                image: 'dog6.jpeg',
+                bio: 'Un bodoque blanco y gordito que se queda dormido a medio parpadeo con la lengüita afuera. Es tan redondo y suavecito que parece una almohada.',
+                vaccinated: false,
+                sterilized: false,
+                energy: 'Baja',
+                compat: { kids: true, cats: true, dogs: true },
+                shelter: { name: 'Refugio Alegría', contact: 'info@refugio.org', phone: '+503 7000 0006' }
+            },
+            {
+                id: 'dog_13',
+                name: 'Concha',
+                age: '3 meses',
+                stage: 'Cachorro',
+                breed: 'Pan Dulce Mix',
+                size: 'Pequeño',
+                gender: 'Hembra',
+                location: 'Santiago de María',
+                tags: ['Pan Dulce', 'Tierna', 'Graciosa'],
+                image: 'dog7.jpeg',
+                bio: 'Literalmente está atravesando el centro de un pan dulce tipo concha. Es la cachorrita más tierna que vas a encontrar en toda la panadería.',
+                vaccinated: true,
+                sterilized: false,
+                energy: 'Media',
+                compat: { kids: true, cats: true, dogs: true },
+                shelter: { name: 'Panadería Perruna', contact: 'pan@dulce.com', phone: '+503 7000 0007' }
+            },
+            {
+                id: 'dog_14',
+                name: 'Chato',
+                age: '4 meses',
+                stage: 'Cachorro',
+                breed: 'Mestizo Chistoso',
+                size: 'Mediano',
+                gender: 'Macho',
+                location: 'Berlín',
+                tags: ['Bizco', 'Gracioso', 'Despistado'],
+                image: 'dog8.jpeg',
+                bio: 'Tiene los ojitos un poco separados y una carita medio desproporcionada que te va a sacar una risa cada vez que lo mires. Un campeón robando corazones.',
+                vaccinated: true,
+                sterilized: false,
+                energy: 'Media',
+                compat: { kids: true, cats: false, dogs: true },
+                shelter: { name: 'Huellas de Amor', contact: 'adopciones@huellas.org', phone: '+503 7000 0008' }
+            },
+            {
+                id: 'dog_15',
+                name: 'Tristeza',
+                age: '3 meses',
+                stage: 'Cachorro',
+                breed: 'Mestizo',
+                size: 'Pequeño',
+                gender: 'Macho',
+                location: 'Alegría',
+                tags: ['Pensativo', 'Melancólico', 'Tranquilo'],
+                image: 'dog9.jpeg',
+                bio: 'Este perrito blanco tiene una mirada súper melancólica, como si estuviera reflexionando sobre todos sus problemas de la vida. ¡Le urgen unos abrazos!',
+                vaccinated: true,
+                sterilized: false,
+                energy: 'Baja',
+                compat: { kids: true, cats: true, dogs: true },
+                shelter: { name: 'Mascotas Felices', contact: 'hola@mascotasfelices.org', phone: '+503 7000 0009' }
+            },
+            {
+                id: 'dog_16',
+                name: 'Sonrisas',
+                age: '1 año',
+                stage: 'Joven/Adulto',
+                breed: 'Chihuahua',
+                size: 'Pequeño',
+                gender: 'Macho',
+                location: 'Santiago de María',
+                tags: ['Sonriente', 'Ojos Saltones', 'Nervioso'],
+                image: 'dog10.jpeg',
+                bio: 'Un chihuahua con ojotes saltones y una sonrisa entre tierna y bien incómoda. Es chiquito, bastante nervioso, pero muy amigable.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Alta',
+                compat: { kids: true, cats: false, dogs: false },
+                shelter: { name: 'Refugio Alegría', contact: 'info@refugio.org', phone: '+503 7000 0010' }
+            },
+            {
+                id: 'dog_17',
+                name: 'Doge',
+                age: '3 años',
+                stage: 'Joven/Adulto',
+                breed: 'Shiba Inu',
+                size: 'Mediano',
+                gender: 'Macho',
+                location: 'Santiago de María',
+                tags: ['Juzgador', 'Esponjoso', 'Meme'],
+                image: 'dog11.jpeg',
+                bio: 'Este perrito tiene mirada de que te está juzgando todo el tiempo mientras descansa cómodamente en el sofá. Buscamos alguien que soporte sus críticas.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Baja',
+                compat: { kids: true, cats: true, dogs: true },
+                shelter: { name: 'Santuario Canino', contact: 'santuario@caninonorte.es', phone: '+503 7000 0011' }
+            },
+            {
+                id: 'dog_18',
+                name: 'Peluche',
+                age: '2 años',
+                stage: 'Joven/Adulto',
+                breed: 'Terrier Mix',
+                size: 'Pequeño',
+                gender: 'Macho',
+                location: 'Berlín',
+                tags: ['Educado', 'Suave', 'Tranquilo'],
+                image: 'dog12.jpeg',
+                bio: 'Parece un osito de peluche blanco y esponjoso, y se para muy educadamente en los pisos de madera a esperar instrucciones. Ideal para vivir adentro.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Media',
+                compat: { kids: true, cats: false, dogs: true },
+                shelter: { name: 'Refugio Mascotas Felices', contact: 'hola@mascotasfelices.org', phone: '+503 7000 0012' }
+            },
+            {
+                id: 'dog_19',
+                name: 'Walter',
+                age: '1 año',
+                stage: 'Joven/Adulto',
+                breed: 'Bull Terrier',
+                size: 'Mediano',
+                gender: 'Macho',
+                location: 'Usulután',
+                tags: ['Intenso', 'Curioso', 'Sin Espacio Personal'],
+                image: 'dog13.jpeg',
+                bio: 'Le encanta invadir tu espacio personal, acercando su cara directo a la cámara con una mirada muy intensa. No conoce el concepto de "distancia".',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Alta',
+                compat: { kids: false, cats: true, dogs: true },
+                shelter: { name: 'Huellas de Amor', contact: 'adopciones@huellas.org', phone: '+503 7000 0013' }
+            },
+            {
+                id: 'dog_20',
+                name: 'Drama',
+                age: '4 años',
+                stage: 'Joven/Adulto',
+                breed: 'Bull Terrier',
+                size: 'Mediano',
+                gender: 'Hembra',
+                location: 'Santiago de María',
+                tags: ['Dramática', 'Tímida', 'Pensativa'],
+                image: 'dog14.jpeg',
+                bio: 'Es bastante dramática; a veces decide presionar toda su cara contra la pared y quedarse ahí reflexionando sobre su vida. Necesita una familia que la anime.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Baja',
+                compat: { kids: true, cats: true, dogs: true },
+                shelter: { name: 'Asociación AdoptaHoy', contact: 'contacto@adoptahoy.es', phone: '+503 7000 0014' }
+            },
+            {
+                id: 'dog_21',
+                name: 'Toretto',
+                age: '3 años',
+                stage: 'Joven/Adulto',
+                breed: 'Bull Terrier',
+                size: 'Mediano',
+                gender: 'Macho',
+                location: 'Alegría',
+                tags: ['Fachero', 'Urbano', 'Copiloto'],
+                image: 'dog15.jpeg',
+                bio: 'El más fachero de todos. Anda manejando de noche con el brazo por fuera de la ventana del carro, usando su sudadera Adidas. Busca copiloto.',
+                vaccinated: false,
+                sterilized: false,
+                energy: 'Alta',
+                compat: { kids: true, cats: true, dogs: true },
+                shelter: { name: 'Protectora La Sonrisa', contact: 'info@lasonrisacanina.org', phone: '+503 7000 0015' }
+            },
+            {
+                id: 'dog_22',
+                name: 'Zen',
+                age: '2 años',
+                stage: 'Joven/Adulto',
+                breed: 'Bull Terrier',
+                size: 'Mediano',
+                gender: 'Macho',
+                location: 'Santiago de María',
+                tags: ['Equilibrista', 'Deportista', 'Concentrado'],
+                image: 'dog16.jpeg',
+                bio: 'Todo un atleta extremo. Medita con los ojos cerrados mientras hace un equilibrio perfecto sobre un balde de pintura invertido, usando su camisa Fox.',
+                vaccinated: true,
+                sterilized: true,
+                energy: 'Alta',
+                compat: { kids: false, cats: true, dogs: false },
+                shelter: { name: 'Santuario Canino', contact: 'santuario@caninonorte.es', phone: '+503 7000 0016' }
+            }
+
+    ];
+
+    initialDogList.sort(() => Math.random() - 0.5);
+
+    // App State Management 
+    let activeDeck = [...initialDogList];
+    let matchesList = [];
+    let cardHistory = []; // Stack for undo
+    let activeDogForModal = null;
+
+        // Current Active Filters State
+        let activeFilters = {
+            size: 'all',
+            age: 'all',
+            gender: 'all',
+            kids: false,
+            cats: false,
+            dogs: false
+        };
+
+        // DOM Elements
+        const cardsStack = document.getElementById('cards-stack');
+        const emptyState = document.getElementById('empty-state');
+        const matchesGrid = document.getElementById('matches-grid');
+        const noMatchesState = document.getElementById('no-matches-state');
+        const matchesBadge = document.getElementById('matches-count-badge');
+        const matchesCountText = document.getElementById('matches-count-text');
+
+        window.onload = function() {
+            initApp();
+        };
+
+        function initApp() {
+            filterDeck();
+            renderMatches();
+            setupFilterUIState();
+        }
+
+        // Render Stack of Cards
+        function renderDeck() {
+            cardsStack.querySelectorAll('.swipe-card').forEach(c => c.remove());
+
+            if (activeDeck.length === 0) {
+                emptyState.classList.remove('hidden');
+                document.getElementById('swipe-controls').classList.add('opacity-40', 'pointer-events-none');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            document.getElementById('swipe-controls').classList.remove('opacity-40', 'pointer-events-none');
+
+            // Render up to 3 cards in stack for depth effect
+            const cardsToRender = activeDeck.slice(-3);
+
+            cardsToRender.forEach((dog, idx) => {
+                const isTopCard = idx === cardsToRender.length - 1;
+                const stackOffset = (cardsToRender.length - 1 - idx);
+                const scale = 1 - (stackOffset * 0.04);
+                const translateY = stackOffset * 12;
+
+                const cardEl = createCardElement(dog, isTopCard, scale, translateY);
+                cardsStack.appendChild(cardEl);
+
+                if (isTopCard) {
+                    attachDragEvents(cardEl, dog);
+                }
+            });
+        }
+
+        // Create Individual Card Element
+        function createCardElement(dog, isTop, scale, translateY) {
+            const card = document.createElement('div');
+            card.className = `swipe-card absolute inset-0 w-full h-full bg-white rounded-3xl shadow-card overflow-hidden flex flex-col border border-orange-100/60 select-none`;
+            card.style.transform = `scale(${scale}) translateY(${translateY}px)`;
+            card.style.zIndex = isTop ? 20 : 10 - scale;
+            card.dataset.dogId = dog.id;
+
+            card.innerHTML = `
+                <!-- Stamps -->
+                <div class="stamp-badge stamp-like">MATCH!</div>
+                <div class="stamp-badge stamp-nope">PASAR</div>
+                <div class="stamp-badge stamp-super">SÚPER</div>
+
+                <!-- Dog Image Header -->
+                <div class="relative flex-1 w-full overflow-hidden bg-slate-100">
+                    <img src="${dog.image}" alt="${dog.name}" class="w-full h-full object-cover pointer-events-none">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+                    
+                    <!-- Quick Info Overlay -->
+                    <div class="absolute bottom-4 left-5 right-5 text-white pointer-events-none">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-baseline gap-2">
+                                <h2 class="text-3xl font-bold font-heading tracking-wide">${dog.name}</h2>
+                                <span class="text-xl font-semibold opacity-90">${dog.age}</span>
+                            </div>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 backdrop-blur-md border border-white/30">${dog.gender}</span>
+                        </div>
+                        <p class="text-xs text-slate-200 flex items-center gap-1">
+                            <i class="fa-solid fa-location-dot text-brand-orange"></i> ${dog.location} • ${dog.breed}
+                        </p>
+                    </div>
+
+                    <!-- Info Button -->
+                    <button onclick="openDetailModal('${dog.id}')" title="Ver perfil completo" class="absolute top-4 right-4 z-30 w-10 h-10 rounded-full bg-white/30 backdrop-blur-md text-white hover:bg-white hover:text-slate-800 transition-all flex items-center justify-center text-lg shadow-md">
+                        <i class="fa-solid fa-info"></i>
+                    </button>
+                </div>
+
+                <!-- Card Footer Tags -->
+                <div class="p-4 bg-white shrink-0 flex flex-wrap gap-1.5 items-center">
+                    ${dog.tags.map(tag => `
+                        <span class="px-3 py-1 rounded-xl text-xs font-bold bg-orange-50 text-brand-orange border border-orange-100">${tag}</span>
+                    `).join('')}
+                </div>
+            `;
+
+            return card;
+        }
+
+        function attachDragEvents(card, dog) {
+            let startX = 0;
+            let startY = 0;
+            let currentX = 0;
+            let currentY = 0;
+            let isDragging = false;
+
+            const stampLike = card.querySelector('.stamp-like');
+            const stampNope = card.querySelector('.stamp-nope');
+            const stampSuper = card.querySelector('.stamp-super');
+
+            function onStart(e) {
+                isDragging = true;
+                const touch = e.touches ? e.touches[0] : e;
+                startX = touch.clientX;
+                startY = touch.clientY;
+                card.style.transition = 'none';
+            }
+
+            function onMove(e) {
+                if (!isDragging) return;
+                const touch = e.touches ? e.touches[0] : e;
+                currentX = touch.clientX - startX;
+                currentY = touch.clientY - startY;
+
+                const rotate = currentX * 0.08;
+                card.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${rotate}deg)`;
+
+                // Opacity calculation for stamps
+                const swipeProgress = Math.min(Math.abs(currentX) / 120, 1);
+                const superProgress = Math.min(Math.max(-currentY, 0) / 120, 1);
+
+                if (currentY < -60 && Math.abs(currentX) < 50) {
+                    stampSuper.style.opacity = superProgress;
+                    stampLike.style.opacity = 0;
+                    stampNope.style.opacity = 0;
+                } else if (currentX > 0) {
+                    stampLike.style.opacity = swipeProgress;
+                    stampNope.style.opacity = 0;
+                    stampSuper.style.opacity = 0;
+                } else if (currentX < 0) {
+                    stampNope.style.opacity = swipeProgress;
+                    stampLike.style.opacity = 0;
+                    stampSuper.style.opacity = 0;
+                }
+            }
+
+            function onEnd() {
+                if (!isDragging) return;
+                isDragging = false;
+
+                const threshold = 100;
+                card.classList.add('swiping-fast');
+
+                if (currentY < -120 && Math.abs(currentX) < 80) {
+                    // Super Like Threshold
+                    finishSwipe(card, dog, 'super');
+                } else if (currentX > threshold) {
+                    // Right Swipe (Match)
+                    finishSwipe(card, dog, 'right');
+                } else if (currentX < -threshold) {
+                    // Left Swipe (Nope)
+                    finishSwipe(card, dog, 'left');
+                } else {
+                    // Reset Position
+                    card.style.transform = `scale(1) translateY(0px) rotate(0deg)`;
+                    stampLike.style.opacity = 0;
+                    stampNope.style.opacity = 0;
+                    stampSuper.style.opacity = 0;
+                }
+
+                currentX = 0;
+                currentY = 0;
+            }
+
+            // Touch events
+            card.addEventListener('touchstart', onStart, { passive: true });
+            card.addEventListener('touchmove', onMove, { passive: true });
+            card.addEventListener('touchend', onEnd);
+
+            // Mouse events
+            card.addEventListener('mousedown', onStart);
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onEnd);
+        }
+
+        // Programmatic & Manual Swipe Handler
+        function triggerSwipe(direction) {
+            if (activeDeck.length === 0) return;
+            const topDog = activeDeck[activeDeck.length - 1];
+            const topCard = cardsStack.querySelector(`[data-dog-id="${topDog.id}"]`);
+            if (topCard) {
+                topCard.classList.add('swiping-fast');
+                finishSwipe(topCard, topDog, direction);
+            }
+        }
+
+        function finishSwipe(card, dog, direction) {
+            let flyX = 0;
+            let flyY = 0;
+            let rotate = 0;
+
+            if (direction === 'right') {
+                flyX = 500;
+                rotate = 25;
+                saveMatch(dog);
+                showToast(`¡Hiciste Match con ${dog.name}! 🐶❤️`, 'success');
+            } else if (direction === 'left') {
+                flyX = -500;
+                rotate = -25;
+            } else if (direction === 'super') {
+                flyY = -600;
+                rotate = 0;
+                saveMatch(dog);
+                showConfetti();
+                showToast(`¡SÚPER LIKE para ${dog.name}! ⭐`, 'purple');
+            }
+
+            card.style.transform = `translate(${flyX}px, ${flyY}px) rotate(${rotate}deg)`;
+            card.style.opacity = '0';
+
+            // Save to history for undo
+            cardHistory.push({ dog, direction });
+
+            setTimeout(() => {
+                activeDeck.pop();
+                renderDeck();
+            }, 250);
+        }
+
+        // Undo Last Swipe
+        function handleUndo() {
+            if (cardHistory.length === 0) {
+                showToast('No hay acciones previas para deshacer', 'info');
+                return;
+            }
+
+            const lastAction = cardHistory.pop();
+            const dog = lastAction.dog;
+
+            // Remove from matches if it was liked
+            if (lastAction.direction === 'right' || lastAction.direction === 'super') {
+                matchesList = matchesList.filter(m => m.id !== dog.id);
+                renderMatches();
+            }
+
+            activeDeck.push(dog);
+            renderDeck();
+            showToast(`Recuperaste a ${dog.name}`, 'info');
+        }
+
+        function saveMatch(dog) {
+            if (!matchesList.some(m => m.id === dog.id)) {
+                matchesList.push(dog);
+                renderMatches();
+            }
+        }
+
+        function removeMatch(dogId, event) {
+            if (event) event.stopPropagation();
+            matchesList = matchesList.filter(m => m.id !== dogId);
+            renderMatches();
+            showToast('Eliminado de tus matches', 'info');
+        }
+
+        function renderMatches() {
+            matchesBadge.textContent = matchesList.length;
+            matchesCountText.textContent = `${matchesList.length} guardados`;
+
+            if (matchesList.length === 0) {
+                noMatchesState.classList.remove('hidden');
+                matchesGrid.innerHTML = '';
+                return;
+            }
+
+            noMatchesState.classList.add('hidden');
+            matchesGrid.innerHTML = matchesList.map(dog => `
+                <div class="bg-white rounded-3xl shadow-sm hover:shadow-card border border-orange-100 overflow-hidden transition-all flex flex-col group">
+                    <div class="relative h-48 overflow-hidden bg-slate-100">
+                        <img src="${dog.image}" alt="${dog.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <button onclick="removeMatch('${dog.id}', event)" title="Eliminar match" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-slate-600 hover:text-red-500 flex items-center justify-center transition-all shadow-md">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                        <span class="absolute bottom-3 left-3 px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/30 backdrop-blur-md text-white border border-white/30">${dog.gender}</span>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-baseline mb-1">
+                                <h3 class="text-xl font-bold text-slate-800">${dog.name}</h3>
+                                <span class="text-xs font-semibold text-slate-500">${dog.age}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-location-dot text-brand-orange"></i> ${dog.location}</p>
+                        </div>
+                        <div class="flex gap-2 pt-2 border-t border-slate-100">
+                            <button onclick="openDetailModal('${dog.id}')" class="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all">
+                                Perfil
+                            </button>
+                            <button onclick="openAdoptFormForDog('${dog.id}')" class="flex-1 py-2 rounded-xl bg-brand-orange hover:bg-brand-orangeHover text-white text-xs font-bold transition-all shadow-sm">
+                                Adoptar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openDetailModal(dogId) {
+            const dog = initialDogList.find(d => d.id === dogId);
+            if (!dog) return;
+
+            activeDogForModal = dog;
+            document.getElementById('modal-dog-image').src = dog.image;
+            document.getElementById('modal-dog-name').textContent = `${dog.name}, ${dog.age}`;
+            document.getElementById('modal-dog-subtext').innerHTML = `<i class="fa-solid fa-location-dot text-brand-orange mr-1"></i> ${dog.location} • ${dog.breed}`;
+            document.getElementById('modal-dog-gender-badge').textContent = dog.gender;
+            document.getElementById('modal-dog-size-badge').textContent = dog.size;
+            document.getElementById('modal-dog-bio').textContent = dog.bio;
+
+            document.getElementById('modal-dog-vac').textContent = dog.vaccinated ? 'Al día' : 'Pendiente';
+            document.getElementById('modal-dog-sterilized').textContent = dog.sterilized ? 'Sí' : 'No';
+            document.getElementById('modal-dog-energy').textContent = dog.energy;
+
+            // Render Tags
+            document.getElementById('modal-dog-tags').innerHTML = dog.tags.map(t => `
+                <span class="px-3 py-1 rounded-xl text-xs font-bold bg-orange-50 text-brand-orange border border-orange-100">${t}</span>
+            `).join('');
+
+            // Render Compatibility
+            document.getElementById('modal-dog-compat').innerHTML = `
+                <span class="flex items-center gap-1.5 text-xs font-bold ${dog.compat.kids ? 'text-green-600' : 'text-slate-400 line-through'}">
+                    <i class="fa-solid ${dog.compat.kids ? 'fa-circle-check text-brand-mint' : 'fa-circle-xmark'}"></i> Niños
+                </span>
+                <span class="flex items-center gap-1.5 text-xs font-bold ${dog.compat.cats ? 'text-green-600' : 'text-slate-400 line-through'}">
+                    <i class="fa-solid ${dog.compat.cats ? 'fa-circle-check text-brand-mint' : 'fa-circle-xmark'}"></i> Gatos
+                </span>
+                <span class="flex items-center gap-1.5 text-xs font-bold ${dog.compat.dogs ? 'text-green-600' : 'text-slate-400 line-through'}">
+                    <i class="fa-solid ${dog.compat.dogs ? 'fa-circle-check text-brand-mint' : 'fa-circle-xmark'}"></i> Otros Perros
+                </span>
+            `;
+
+            // Shelter Info
+            document.getElementById('modal-shelter-name').textContent = dog.shelter.name;
+            document.getElementById('modal-shelter-contact').textContent = dog.shelter.contact;
+            document.getElementById('modal-shelter-phone').href = `tel:${dog.shelter.phone}`;
+
+            document.getElementById('dog-detail-modal').classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('dog-detail-modal').classList.add('hidden');
+        }
+
+        function adoptFromModal() {
+            closeDetailModal();
+            if (activeDogForModal) {
+                openAdoptFormForDog(activeDogForModal.id);
+            }
+        }
+
+        function openAdoptFormForDog(dogId) {
+            const dog = initialDogList.find(d => d.id === dogId);
+            if (!dog) return;
+
+            document.getElementById('adopt-dog-name').textContent = dog.name;
+            document.getElementById('adopt-form-modal').classList.remove('hidden');
+        }
+
+        function closeAdoptForm() {
+            document.getElementById('adopt-form-modal').classList.add('hidden');
+        }
+
+        function submitAdoptionForm(e) {
+            e.preventDefault();
+            closeAdoptForm();
+            showConfetti();
+            showToast('¡Solicitud enviada con éxito! El refugio se contactará contigo.', 'success');
+            e.target.reset();
+        }
+
+        function openFilterModal() {
+            document.getElementById('filter-modal').classList.remove('hidden');
+        }
+
+        function closeFilterModal() {
+            document.getElementById('filter-modal').classList.add('hidden');
+        }
+
+        function toggleFilterOption(category, value) {
+            activeFilters[category] = value;
+            setupFilterUIState();
+        }
+
+        function updateCompatibilityFilter() {
+            activeFilters.kids = document.getElementById('filter-kids').checked;
+            activeFilters.cats = document.getElementById('filter-cats').checked;
+            activeFilters.dogs = document.getElementById('filter-dogs').checked;
+        }
+
+        function setupFilterUIState() {
+            ['size', 'age', 'gender'].forEach(cat => {
+                document.querySelectorAll(`.filter-btn-${cat}`).forEach(btn => {
+                    if (btn.dataset.val === activeFilters[cat]) {
+                        btn.className = `filter-btn-${cat} py-2 px-3 text-xs font-bold rounded-xl bg-brand-orange text-white shadow-sm`;
+                    } else {
+                        btn.className = `filter-btn-${cat} py-2 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50`;
+                    }
+                });
+            });
+
+            document.getElementById('filter-kids').checked = activeFilters.kids;
+            document.getElementById('filter-cats').checked = activeFilters.cats;
+            document.getElementById('filter-dogs').checked = activeFilters.dogs;
+
+            // Check if active filters differ from defaults
+            const hasActiveFilters = activeFilters.size !== 'all' || activeFilters.age !== 'all' || activeFilters.gender !== 'all' || activeFilters.kids || activeFilters.cats || activeFilters.dogs;
+            document.getElementById('filter-badge').classList.toggle('hidden', !hasActiveFilters);
+        }
+
+        function resetFilters() {
+            activeFilters = { size: 'all', age: 'all', gender: 'all', kids: false, cats: false, dogs: false };
+            setupFilterUIState();
+            filterDeck();
+            closeFilterModal();
+            showToast('Filtros restablecidos', 'info');
+        }
+
+        function applyFilters() {
+            filterDeck();
+            closeFilterModal();
+            showToast('Filtros aplicados', 'info');
+        }
+
+        function filterDeck() {
+            activeDeck = initialDogList.filter(dog => {
+                if (activeFilters.size !== 'all' && dog.size !== activeFilters.size) return false;
+                if (activeFilters.age !== 'all' && dog.stage !== activeFilters.age) return false;
+                if (activeFilters.gender !== 'all' && dog.gender !== activeFilters.gender) return false;
+                if (activeFilters.kids && !dog.compat.kids) return false;
+                if (activeFilters.cats && !dog.compat.cats) return false;
+                if (activeFilters.dogs && !dog.compat.dogs) return false;
+                return true;
+            });
+
+            renderDeck();
+        }
+
+        function resetDeck() {
+            resetFilters();
+        }
+
+        function switchTab(tab) {
+            const swipeView = document.getElementById('swipe-view');
+            const matchesView = document.getElementById('matches-view');
+            const swipeBtn = document.getElementById('nav-swipe-btn');
+            const matchesBtn = document.getElementById('nav-matches-btn');
+
+            if (tab === 'swipe') {
+                swipeView.classList.remove('hidden');
+                matchesView.classList.add('hidden');
+
+                swipeBtn.className = "p-2.5 sm:px-4 rounded-xl bg-brand-orange text-white font-bold transition-all flex items-center gap-2 text-sm shadow-md shadow-orange-500/20 active:scale-95";
+                matchesBtn.className = "relative p-2.5 sm:px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-all flex items-center gap-2 text-sm active:scale-95";
+            } else {
+                swipeView.classList.add('hidden');
+                matchesView.classList.remove('hidden');
+
+                matchesBtn.className = "relative p-2.5 sm:px-4 rounded-xl bg-brand-orange text-white font-bold transition-all flex items-center gap-2 text-sm shadow-md shadow-orange-500/20 active:scale-95";
+                swipeBtn.className = "p-2.5 sm:px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-all flex items-center gap-2 text-sm active:scale-95";
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            let bgClass = 'bg-slate-800 text-white';
+            if (type === 'success') bgClass = 'bg-brand-mint text-white';
+            if (type === 'purple') bgClass = 'bg-brand-purple text-white';
+
+            toast.className = `px-4 py-3 rounded-2xl shadow-xl font-bold text-sm flex items-center gap-2 animate-in slide-in-from-bottom-5 duration-200 ${bgClass}`;
+            toast.innerHTML = `<span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'transition-opacity');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        function showConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
